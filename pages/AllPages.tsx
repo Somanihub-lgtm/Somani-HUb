@@ -1,5 +1,5 @@
 import React from 'react';
-import { Section, EditableText, EditableImage, Button, Card, Reveal } from '../components/Shared';
+import { Section, EditableText, EditableImage, Button, Card, Reveal, safeJSONParse } from '../components/Shared';
 import { useContent } from '../context/ContentContext';
 import { ServiceItem, CourseItem, BlogPost } from '../types';
 import * as Icons from 'lucide-react';
@@ -41,7 +41,7 @@ export const About: React.FC = () => {
 // --- Services Page ---
 export const Services: React.FC = () => {
   const { content, updateContent } = useContent();
-  const services: ServiceItem[] = JSON.parse(content.services_json);
+  const services: ServiceItem[] = safeJSONParse(content.services_json, []);
 
   const handleUpdateService = (index: number, key: keyof ServiceItem, val: string) => {
     const newServices = [...services];
@@ -84,7 +84,7 @@ export const Services: React.FC = () => {
 // --- Courses Page ---
 export const Courses: React.FC = () => {
   const { content, updateContent } = useContent();
-  const courses: CourseItem[] = JSON.parse(content.courses_json);
+  const courses: CourseItem[] = safeJSONParse(content.courses_json, []);
 
   const handleUpdateCourse = (index: number, key: keyof CourseItem, val: string) => {
     const newCourses = [...courses];
@@ -136,7 +136,7 @@ export const Courses: React.FC = () => {
 // --- Blog Page ---
 export const Blog: React.FC = () => {
   const { content } = useContent();
-  const blogs: BlogPost[] = JSON.parse(content.blogs_json);
+  const blogs: BlogPost[] = safeJSONParse(content.blogs_json, []);
 
   return (
     <>
@@ -257,5 +257,17 @@ export const Privacy: React.FC = () => (
     <p>We only ask for personal information when we truly need it to provide a service to you. We collect it by fair and lawful means, with your knowledge and consent.</p>
     <h3>2. How We Use Information</h3>
     <p>We use the collected data for various purposes: to provide and maintain our Service, to notify you about changes to our Service, to provide customer support, and to gather analysis or valuable information so that we can improve the Service.</p>
+  </div>
+);
+
+export const Terms: React.FC = () => (
+  <div className="max-w-4xl mx-auto py-20 px-4 prose">
+    <h1>Terms & Conditions</h1>
+    <p>Last updated: October 2023</p>
+    <p>By accessing the website at Somani Hub, you are agreeing to be bound by these terms of service, all applicable laws and regulations, and agree that you are responsible for compliance with any applicable local laws.</p>
+    <h3>1. Use License</h3>
+    <p>Permission is granted to temporarily download one copy of the materials (information or software) on Somani Hub's website for personal, non-commercial transitory viewing only.</p>
+    <h3>2. Disclaimer</h3>
+    <p>The materials on Somani Hub's website are provided on an 'as is' basis. Somani Hub makes no warranties, expressed or implied, and hereby disclaims and negates all other warranties including, without limitation, implied warranties or conditions of merchantability, fitness for a particular purpose, or non-infringement of intellectual property or other violation of rights.</p>
   </div>
 );

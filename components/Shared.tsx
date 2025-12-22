@@ -1,19 +1,38 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import { useContent } from '../context/ContentContext';
 import { generateTextEnhancement } from '../services/geminiService';
-import { Edit2, Check, Sparkles, Loader2, Upload, Plus, Minus, ChevronLeft, ChevronRight, Star } from 'lucide-react';
+import { Edit2, Check, Sparkles, Loader2, Upload, Plus, Minus, ChevronLeft, ChevronRight, Star, Activity } from 'lucide-react';
+import * as LucideIcons from 'lucide-react';
 import { FAQItem, TestimonialItem } from '../types';
 
 interface EditableProps {
-  contentKey: string; // The key in SiteContent, OR a raw value identifier if dealing with lists
-  value: string; // The current text
-  onSave?: (val: string) => void; // Optional override for lists
+  contentKey: string;
+  value: string;
+  onSave?: (val: string) => void;
   multiline?: boolean;
   className?: string;
   placeholder?: string;
 }
 
-// Animation Wrapper
+// Prevents crashing if an icon name is invalid
+export const SafeIcon: React.FC<{ name: string; size?: number; className?: string }> = ({ name, size = 24, className }) => {
+  // @ts-ignore
+  const IconComponent = LucideIcons[name] || Activity;
+  return <IconComponent size={size} className={className} />;
+};
+
+export const safeJSONParse = <T,>(jsonString: string | null, fallback: T): T => {
+  if (!jsonString) return fallback;
+  try {
+    const parsed = JSON.parse(jsonString);
+    return parsed as T;
+  } catch (e) {
+    console.warn("JSON Parse Error - falling back to default:", e);
+    return fallback;
+  }
+};
+
 export const Reveal: React.FC<{ children: React.ReactNode, className?: string, delay?: number }> = ({ children, className, delay = 0 }) => {
   const [isVisible, setIsVisible] = useState(false);
   const ref = useRef(null);
@@ -45,24 +64,17 @@ export const EditableText: React.FC<EditableProps> = ({ contentKey, value, onSav
     if (onSave) {
       onSave(e.target.value);
     } else {
-      // Assuming contentKey is a valid key of SiteContent
-      // @ts-ignore - dynamic key access
-      updateContent(contentKey, e.target.value);
+      updateContent(contentKey as any, e.target.value);
     }
   };
 
   const handleAI = async () => {
-    if(!process.env.API_KEY) {
-      alert("Please check setup. Missing API_KEY.");
-      return;
-    }
     setIsEnhancing(true);
     const newVal = await generateTextEnhancement(value, "Make this text more professional, persuasive, and concise for a luxury digital agency website.");
     if (onSave) {
       onSave(newVal);
     } else {
-      // @ts-ignore
-      updateContent(contentKey, newVal);
+      updateContent(contentKey as any, newVal);
     }
     setIsEnhancing(false);
   };
@@ -83,14 +95,14 @@ export const EditableText: React.FC<EditableProps> = ({ contentKey, value, onSav
         <textarea
           value={value}
           onChange={handleChange}
-          className={`w-full bg-yellow-100/20 border border-yellow-500/50 p-1 rounded text-neutral-900 dark:text-white ${className}`}
+          className={`w-full bg-yellow-100/20 border border-yellow-500/50 p-1 rounded text-neutral-900 ${className}`}
           rows={4}
         />
       ) : (
         <input
           value={value}
           onChange={handleChange}
-          className={`w-full bg-yellow-100/20 border border-yellow-500/50 p-1 rounded text-neutral-900 dark:text-white ${className}`}
+          className={`w-full bg-yellow-100/20 border border-yellow-500/50 p-1 rounded text-neutral-900 ${className}`}
         />
       )}
     </div>
@@ -110,14 +122,13 @@ export const EditableImage: React.FC<{
     if (onSave) {
       onSave(e.target.value);
     } else if (contentKey) {
-      // @ts-ignore
-      updateContent(contentKey, e.target.value);
+      updateContent(contentKey as any, e.target.value);
     }
   };
 
   return (
-    <div className={`relative group ${className}`}>
-      <img src={src} alt={alt} className={`w-full h-full object-cover ${className}`} />
+    <div className={`relative group overflow-hidden ${className}`}>
+      <img src={src} alt={alt} className={`w-full h-full object-cover transition-transform duration-700 group-hover:scale-110 ${className}`} />
       {isEditMode && (
         <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-20">
            <div className="bg-white p-2 rounded shadow-lg w-3/4">
@@ -150,7 +161,7 @@ export const Button: React.FC<{
   const variants = {
     primary: "bg-emerald-850 text-white hover:bg-emerald-950",
     outline: "border-2 border-emerald-850 text-emerald-850 hover:bg-emerald-50",
-    gold: "bg-gradient-to-r from-yellow-500 to-amber-600 text-white hover:from-yellow-400 hover:to-amber-500 shadow-amber-500/20",
+    gold: "bg-gradient-to-r from-yellow-500 to-amber-600 text-white hover:from-yellow-400 hover:to-amber-500",
     black: "bg-black text-white hover:bg-neutral-800 border border-neutral-700"
   };
 
@@ -169,6 +180,7 @@ export const Card: React.FC<{ children: React.ReactNode; className?: string }> =
 
 export const FAQAccordion: React.FC<{ items: FAQItem[] }> = ({ items }) => {
   const [openIndex, setOpenIndex] = useState<number | null>(0);
+  if (!items || items.length === 0) return null;
 
   return (
     <div className="space-y-4 max-w-3xl mx-auto">
@@ -188,53 +200,6 @@ export const FAQAccordion: React.FC<{ items: FAQItem[] }> = ({ items }) => {
           )}
         </div>
       ))}
-    </div>
-  );
-}
-
-export const TestimonialSlider: React.FC<{ items: TestimonialItem[] }> = ({ items }) => {
-  const [currentIndex, setCurrentIndex] = useState(0);
-
-  const next = () => setCurrentIndex((prev) => (prev + 1) % items.length);
-  const prev = () => setCurrentIndex((prev) => (prev - 1 + items.length) % items.length);
-
-  return (
-    <div className="relative max-w-4xl mx-auto px-12">
-      <button onClick={prev} className="absolute left-0 top-1/2 -translate-y-1/2 p-2 rounded-full bg-white shadow-lg text-emerald-900 hover:text-gold-500 z-10 transition-transform hover:scale-110">
-        <ChevronLeft size={24} />
-      </button>
-      
-      <div className="overflow-hidden">
-         <div className="transition-all duration-500 ease-in-out transform" >
-            <div className="bg-white p-8 md:p-12 rounded-2xl shadow-xl border border-gold-500/20 text-center">
-               <div className="flex justify-center mb-6">
-                 <img src={items[currentIndex].avatar} alt={items[currentIndex].name} className="w-20 h-20 rounded-full object-cover border-4 border-gold-100 animate-fade-in" />
-               </div>
-               <div className="flex justify-center gap-1 text-gold-500 mb-4">
-                  {[...Array(items[currentIndex].rating || 5)].map((_, i) => <Star key={i} size={16} fill="currentColor" />)}
-               </div>
-               <p className="text-xl md:text-2xl font-serif text-emerald-950 italic mb-6">"{items[currentIndex].quote}"</p>
-               <div>
-                  <h4 className="font-bold text-lg">{items[currentIndex].name}</h4>
-                  <p className="text-sm text-neutral-500 uppercase tracking-wider">{items[currentIndex].role}</p>
-               </div>
-            </div>
-         </div>
-      </div>
-
-      <button onClick={next} className="absolute right-0 top-1/2 -translate-y-1/2 p-2 rounded-full bg-white shadow-lg text-emerald-900 hover:text-gold-500 z-10 transition-transform hover:scale-110">
-        <ChevronRight size={24} />
-      </button>
-
-      <div className="flex justify-center gap-2 mt-6">
-        {items.map((_, i) => (
-          <button 
-            key={i} 
-            onClick={() => setCurrentIndex(i)} 
-            className={`w-3 h-3 rounded-full transition-colors ${i === currentIndex ? 'bg-gold-500' : 'bg-neutral-300'}`} 
-          />
-        ))}
-      </div>
     </div>
   );
 }

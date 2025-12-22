@@ -1,20 +1,17 @@
-import { GoogleGenAI } from "@google/genai";
 
-const getClient = () => {
-  const apiKey = process.env.API_KEY;
-  if (!apiKey) return null;
-  return new GoogleGenAI({ apiKey });
-};
+import { GoogleGenAI, Type } from "@google/genai";
 
+// Use gemini-3-flash-preview for text enhancement tasks as per guidelines
 export const generateTextEnhancement = async (currentText: string, instruction: string): Promise<string> => {
-  const ai = getClient();
-  if (!ai) return "API Key missing. Please configure environment.";
+  // Always initialize with direct process.env.API_KEY access
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY as string });
 
   try {
     const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
+      model: 'gemini-3-flash-preview',
       contents: `Original text: "${currentText}". \nInstruction: ${instruction}. \nProvide only the rewritten text without quotes or explanations.`,
     });
+    // Access response.text directly as a property, not a method
     return response.text || currentText;
   } catch (error) {
     console.error("Gemini Error:", error);
@@ -22,18 +19,38 @@ export const generateTextEnhancement = async (currentText: string, instruction: 
   }
 };
 
+// Generate SEO tags using the recommended responseSchema for JSON output
 export const generateSeoTags = async (pageContent: string): Promise<{title: string, description: string}> => {
-  const ai = getClient();
-  if (!ai) return { title: "Error", description: "API Key Missing" };
+  // Always initialize with direct process.env.API_KEY access
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY as string });
 
   try {
     const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
+      model: 'gemini-3-flash-preview',
       contents: `Based on this website content summary: "${pageContent.substring(0, 500)}...", generate a SEO Meta Title (max 60 chars) and Meta Description (max 160 chars). Return JSON format only: { "title": "...", "description": "..." }`,
-      config: { responseMimeType: "application/json" }
+      config: { 
+        responseMimeType: "application/json",
+        // Using responseSchema as recommended for predictable JSON output
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: {
+            title: {
+              type: Type.STRING,
+              description: 'The SEO Meta Title (max 60 characters).',
+            },
+            description: {
+              type: Type.STRING,
+              description: 'The SEO Meta Description (max 160 characters).',
+            },
+          },
+          required: ['title', 'description'],
+        }
+      }
     });
     
-    return JSON.parse(response.text || '{}');
+    // Access response.text property and trim for parsing
+    const jsonStr = response.text.trim();
+    return JSON.parse(jsonStr || '{"title": "", "description": ""}');
   } catch (error) {
     console.error("Gemini SEO Error:", error);
     return { title: "", description: "" };
